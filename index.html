@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartReview ID — NFC Review</title>
+  <title>SmartReview ID — Aktivasi & Tap NFC</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -16,19 +16,22 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
     body { background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-    .card { background: #fff; width: 100%; max-width: 420px; padding: 32px 26px; border-radius: 20px; box-shadow: 0 12px 32px rgba(0,0,0,0.06); text-align: center; }
-    .badge { display: inline-block; background: #eef5f0; color: var(--primary-dark); font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 20px; margin-bottom: 14px; }
+    .card { background: #fff; width: 100%; max-width: 430px; padding: 32px 26px; border-radius: 20px; box-shadow: 0 12px 32px rgba(0,0,0,0.06); text-align: center; }
+    .badge { display: inline-block; background: #eef5f0; color: var(--primary-dark); font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 20px; margin-bottom: 12px; }
     h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
     p.sub { font-size: 13px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
+
+    .tabs { display: flex; background: #f0f4f1; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
+    .tab-btn { flex: 1; padding: 9px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: var(--muted); border-radius: 9px; cursor: pointer; transition: 0.2s; }
+    .tab-btn.active { background: #fff; color: var(--primary-dark); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
     .form-group { text-align: left; margin-bottom: 15px; position: relative; }
     label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
     input { width: 100%; padding: 12px 14px; border: 1.5px solid #e1e7e3; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; }
     input:focus { border-color: var(--primary); }
-    
-    /* Dropdown saran tempat */
+
     .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1.5px solid #e1e7e3; border-top: none; border-radius: 0 0 12px 12px; max-height: 210px; overflow-y: auto; z-index: 99; box-shadow: 0 10px 24px rgba(0,0,0,0.08); display: none; }
     .suggestion-item { padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid #f2f4f3; text-align: left; }
-    .suggestion-item:last-child { border-bottom: none; }
     .suggestion-item:hover { background: #f2f7f4; }
     .suggestion-title { font-weight: 600; color: var(--text); display: block; }
     .suggestion-sub { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
@@ -37,8 +40,15 @@
     .btn { width: 100%; padding: 13px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 6px; }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-dark); }
-    .btn-danger { background: #fff0f0; color: var(--danger); border: 1px solid #ffd6d6; margin-top: 12px; }
+    .btn-danger { background: #fff0f0; color: var(--danger); border: 1px solid #ffd6d6; margin-top: 6px; }
     .btn-danger:hover { background: var(--danger); color: #fff; }
+
+    /* Modal Scan / Write NFC */
+    .nfc-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 999; }
+    .nfc-modal { background: #fff; width: 100%; max-width: 360px; padding: 28px 22px; border-radius: 20px; text-align: center; }
+    .pulse-ring { width: 68px; height: 68px; border-radius: 50%; background: #eef5f0; color: var(--primary-dark); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-weight: 700; font-size: 18px; animation: pulse 1.4s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(127,173,140,0.5); } 70% { box-shadow: 0 0 0 18px rgba(127,173,140,0); } 100% { box-shadow: 0 0 0 0 rgba(127,173,140,0); } }
+
     .loader { width: 38px; height: 38px; border: 3.5px solid #e6eee8; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 20px auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .hidden { display: none !important; }
@@ -52,40 +62,47 @@
 <div class="card">
   <div class="badge" id="topBadge">SmartReview ID</div>
 
-  <!-- STATE 1: LOADING / REDIRECT / INSTRUKSI TAP -->
-  <div id="loadingView">
-    <div class="loader" id="loaderSpinner"></div>
+  <!-- STATE 1: REDIRECT SAAT NFC SUDAH AKTIF DI-TAP -->
+  <div id="loadingView" class="hidden">
+    <div class="loader"></div>
     <h1 id="loadingTitle">Menghubungkan...</h1>
-    <p class="sub" id="loadingSub">Mohon tunggu sebentar...</p>
-    <span class="manage-link hidden" id="manageBtn" onclick="openManageMode()">Kelola / Reset NFC</span>
+    <p class="sub" id="loadingSub">Mengarahkan ke halaman ulasan Google Maps...</p>
+    <span class="manage-link hidden" id="manageBtn" onclick="openManageFromRedirect()">Kelola / Reset NFC</span>
   </div>
 
-  <!-- STATE 2: DASHBOARD AKTIVASI / KELOLA (Muncul otomatis saat tap NFC yang belum aktif) -->
-  <div id="formView" class="hidden">
-    <h1 id="formTitle">Aktivasi Standee NFC</h1>
-    <p class="sub" id="formSub">Cari nama bisnis Anda di bawah ini, lalu buat password untuk mengamankan standee.</p>
+  <!-- STATE 2: DASHBOARD UTAMA (Buka Web -> Isi Data -> Tempel NFC Kosong) -->
+  <div id="dashboardView">
+    <h1 id="dashTitle">Aktivasi Standee NFC</h1>
+    <p class="sub" id="dashSub">Isi nama bisnis & password di bawah ini, lalu tempelkan standee NFC Anda.</p>
 
-    <div class="form-group">
-      <label>Cari Nama Tempat / Bisnis</label>
-      <input type="text" id="placeSearch" placeholder="Ketik nama toko / klinik / kafe..." autocomplete="off">
-      <div class="suggestions" id="suggestionsBox"></div>
-      <span class="toggle-manual" onclick="toggleManualInput()">Lokasi tidak ditemukan? Input manual / tempel link Maps</span>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabActivate" onclick="switchTab('activate')">Aktivasi NFC Baru</button>
+      <button class="tab-btn" id="tabReset" onclick="switchTab('reset')">Reset / Hapus NFC</button>
     </div>
 
-    <div id="manualBox" class="hidden">
+    <div id="activateFields">
       <div class="form-group">
-        <label>Nama Bisnis Anda</label>
-        <input type="text" id="manualName" placeholder="Contoh: EMRA Clinic Jakarta">
+        <label>Cari Nama Tempat / Bisnis</label>
+        <input type="text" id="placeSearch" placeholder="Ketik nama toko / klinik / kafe..." autocomplete="off">
+        <div class="suggestions" id="suggestionsBox"></div>
+        <span class="toggle-manual" onclick="toggleManualInput()">Lokasi tidak ditemukan? Input manual / tempel link Maps</span>
       </div>
-      <div class="form-group">
-        <label>Link Google Maps / Review (Opsional)</label>
-        <input type="url" id="manualUrl" placeholder="https://g.page/r/...">
-      </div>
-    </div>
 
-    <div class="selected-place" id="selectedPlaceBox">
-      <strong>Terpilih:</strong> <span id="selectedPlaceName">-</span><br>
-      <small id="selectedPlaceAddr">-</small>
+      <div id="manualBox" class="hidden">
+        <div class="form-group">
+          <label>Nama Bisnis Anda</label>
+          <input type="text" id="manualName" placeholder="Contoh: EMRA Clinic Jakarta">
+        </div>
+        <div class="form-group">
+          <label>Link Google Maps / Review (Opsional)</label>
+          <input type="url" id="manualUrl" placeholder="https://g.page/r/...">
+        </div>
+      </div>
+
+      <div class="selected-place" id="selectedPlaceBox">
+        <strong>Terpilih:</strong> <span id="selectedPlaceName">-</span><br>
+        <small id="selectedPlaceAddr">-</small>
+      </div>
     </div>
 
     <div class="form-group">
@@ -93,47 +110,55 @@
       <input type="password" id="passwordInput" placeholder="Buat password (ingat untuk reset nanti)">
     </div>
 
-    <button class="btn btn-primary" id="activateBtn" onclick="submitAction('activate')">Simpan & Aktifkan NFC</button>
-    <button class="btn btn-danger hidden" id="resetBtn" onclick="submitAction('reset')">Hapus Data / Reset NFC</button>
-
+    <button class="btn btn-primary" id="submitBtn" onclick="startNfcProcess()">Simpan & Tempel NFC</button>
     <div class="msg" id="statusMsg"></div>
+  </div>
+</div>
+
+<!-- POPUP INSTRUKSI TEMPEL NFC -->
+<div class="nfc-overlay hidden" id="nfcOverlay">
+  <div class="nfc-modal">
+    <div class="pulse-ring">NFC</div>
+    <h1 id="modalTitle">Tempelkan NFC Sekarang</h1>
+    <p class="sub" id="modalSub" style="margin-bottom: 16px;">Dekatkan bagian belakang HP Android Anda ke standee NFC hingga bergetar.</p>
+    <button class="btn btn-danger" onclick="cancelNfcScan()">Batal</button>
   </div>
 </div>
 
 <script>
   // === KONFIGURASI ===
-  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyEA11ArlyrKXYqoA2Pn2MLnt9eXiZbJd0Mjtp_tb8wPeJOdB93ti7sprFsxv8kvKWTkw/exec';
-  
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/library/d/1VYNawedtdSW6VeTZXcfp4MDBjVJ70cHlQiWRxI4-Gdpest2ZhBoRxki8/2';
+
   const urlParams = new URLSearchParams(window.location.search);
   const rawId = urlParams.get('id');
-  const nfcId = rawId ? (/^\d+$/.test(rawId.trim()) ? rawId.trim().padStart(3, '0') : rawId.trim()) : null;
-  const isManageMode = urlParams.get('mode') === 'manage';
+  let activeNfcId = rawId ? (/^\d+$/.test(rawId.trim()) ? rawId.trim().padStart(3, '0') : rawId.trim()) : null;
 
+  let currentTab = 'activate';
   let selectedBusinessName = '';
   let selectedLocationInfo = '';
   let isManualMode = false;
   let redirectTimer = null;
   let searchTimeout = null;
+  let nfcAbortController = null;
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (!nfcId) {
-      document.getElementById('loaderSpinner').classList.add('hidden');
-      document.getElementById('loadingTitle').innerText = 'Tempelkan HP ke Standee NFC';
-      document.getElementById('loadingSub').innerText = 'Silakan tap chip NFC atau scan QR Code pada standee Anda untuk memulai aktivasi atau memberikan ulasan.';
-      return;
-    }
-
-    document.getElementById('topBadge').innerText = `Standee ID: ${nfcId}`;
     setupOsmAutocomplete();
-    checkNfcStatus();
+
+    // Jika dibuka dari hasil Tap NFC yang sudah berisi ?id=001
+    if (activeNfcId) {
+      document.getElementById('topBadge').innerText = `Standee ID: ${activeNfcId}`;
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('loadingView').classList.remove('hidden');
+      checkExistingNfc(activeNfcId);
+    }
   });
 
-  async function checkNfcStatus() {
+  async function checkExistingNfc(idToCheck) {
     try {
-      const res = await fetch(`${GAS_WEB_APP_URL}?id=${encodeURIComponent(nfcId)}`);
+      const res = await fetch(`${GAS_WEB_APP_URL}?id=${encodeURIComponent(idToCheck)}`);
       const data = await res.json();
 
-      if (data.isActive && !isManageMode) {
+      if (data.isActive) {
         document.getElementById('loadingTitle').innerText = data.businessName;
         document.getElementById('loadingSub').innerText = 'Mengarahkan ke halaman ulasan dalam 2 detik...';
         document.getElementById('manageBtn').classList.remove('hidden');
@@ -142,38 +167,43 @@
           window.location.replace(data.reviewUrl);
         }, 1800);
       } else {
-        showForm(data);
+        // Jika chip sudah punya ID tapi datanya kosong (habis direset), tampilkan form aktivasi
+        document.getElementById('loadingView').classList.add('hidden');
+        document.getElementById('dashboardView').classList.remove('hidden');
+        switchTab('activate');
       }
     } catch (err) {
-      document.getElementById('loaderSpinner').classList.add('hidden');
       document.getElementById('loadingTitle').innerText = 'Gagal Memuat Data';
-      document.getElementById('loadingSub').innerText = 'Periksa koneksi internet atau konfigurasi Script.';
+      document.getElementById('loadingSub').innerText = 'Periksa koneksi internet Anda.';
     }
   }
 
-  function openManageMode() {
+  function openManageFromRedirect() {
     if (redirectTimer) clearTimeout(redirectTimer);
-    showForm({ isActive: true, businessName: document.getElementById('loadingTitle').innerText });
+    document.getElementById('loadingView').classList.add('hidden');
+    document.getElementById('dashboardView').classList.remove('hidden');
+    switchTab('reset');
   }
 
-  function showForm(data) {
-    document.getElementById('loadingView').classList.add('hidden');
-    document.getElementById('formView').classList.remove('hidden');
+  function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('statusMsg').innerText = '';
+    document.getElementById('tabActivate').classList.toggle('active', tab === 'activate');
+    document.getElementById('tabReset').classList.toggle('active', tab === 'reset');
 
-    if (data && data.isActive) {
-      document.getElementById('formTitle').innerText = 'Kelola / Reset NFC';
-      document.getElementById('formSub').innerText = `Terhubung ke: ${data.businessName}. Masukkan password yang Anda buat saat aktivasi.`;
-      document.getElementById('passwordLabel').innerText = 'Masukkan Password Anda';
-      document.getElementById('passwordInput').placeholder = 'Ketik password yang dibuat sebelumnya';
-      document.getElementById('activateBtn').innerText = 'Simpan Perubahan Lokasi';
-      document.getElementById('resetBtn').classList.remove('hidden');
-    } else {
-      document.getElementById('formTitle').innerText = 'Aktivasi Standee NFC';
-      document.getElementById('formSub').innerText = 'Cari nama bisnis Anda di bawah ini, lalu buat password untuk mengamankan standee.';
+    const submitBtn = document.getElementById('submitBtn');
+    if (tab === 'activate') {
+      document.getElementById('activateFields').classList.remove('hidden');
       document.getElementById('passwordLabel').innerText = 'Buat Password Baru';
       document.getElementById('passwordInput').placeholder = 'Buat password (ingat untuk reset nanti)';
-      document.getElementById('activateBtn').innerText = 'Simpan & Aktifkan NFC';
-      document.getElementById('resetBtn').classList.add('hidden');
+      submitBtn.innerText = 'Simpan & Tempel NFC';
+      submitBtn.className = 'btn btn-primary';
+    } else {
+      document.getElementById('activateFields').classList.add('hidden');
+      document.getElementById('passwordLabel').innerText = 'Masukkan Password Standee';
+      document.getElementById('passwordInput').placeholder = 'Ketik password yang dibuat saat aktivasi';
+      submitBtn.innerText = 'Tempel NFC & Hapus Data';
+      submitBtn.className = 'btn btn-danger';
     }
   }
 
@@ -244,7 +274,12 @@
     });
   }
 
-  async function submitAction(action) {
+  function cancelNfcScan() {
+    if (nfcAbortController) nfcAbortController.abort();
+    document.getElementById('nfcOverlay').classList.add('hidden');
+  }
+
+  async function startNfcProcess() {
     const password = document.getElementById('passwordInput').value.trim();
     const statusMsg = document.getElementById('statusMsg');
 
@@ -258,33 +293,94 @@
     let finalLoc = selectedLocationInfo;
     let customUrl = '';
 
-    if (action === 'activate') {
+    if (currentTab === 'activate') {
       if (isManualMode) {
         finalName = document.getElementById('manualName').value.trim();
         customUrl = document.getElementById('manualUrl').value.trim();
         finalLoc = 'Indonesia';
       }
-
       if (!finalName) {
         statusMsg.style.color = '#e05252';
         statusMsg.innerText = 'Pilih nama tempat dari saran yang muncul atau isi manual!';
         return;
       }
-    } else {
-      if (!confirm('Yakin ingin menghapus data bisnis & password dari standee ini?')) {
-        return;
-      }
     }
 
+    // Jika URL sudah membawa ?id=001 (misal habis klik Kelola dari redirect), langsung proses tanpa perlu Web NFC Writer
+    if (activeNfcId) {
+      await sendToBackend(activeNfcId, finalName, finalLoc, customUrl, password, false);
+      return;
+    }
+
+    // Cek dukungan Web NFC API (Chrome Android)
+    if (!('NDEFReader' in window)) {
+      statusMsg.style.color = '#e05252';
+      statusMsg.innerText = 'Fitur tempel & tulis NFC langsung dari browser hanya didukung di Google Chrome Android.';
+      return;
+    }
+
+    // Munculkan popup "Tempelkan NFC Sekarang"
+    document.getElementById('nfcOverlay').classList.remove('hidden');
+    nfcAbortController = new AbortController();
+
+    try {
+      const ndef = new NDEFReader();
+      await ndef.scan({ signal: nfcAbortController.signal });
+
+      ndef.onreading = async (event) => {
+        // Cek apakah di dalam NFC yang ditempel sudah ada ID sebelumnya
+        let detectedId = null;
+        for (const record of event.message.records) {
+          if (record.recordType === 'url') {
+            const decoder = new TextDecoder();
+            const urlStr = decoder.decode(record.data);
+            try {
+              const parsed = new URL(urlStr);
+              if (parsed.searchParams.get('id')) {
+                detectedId = parsed.searchParams.get('id');
+              }
+            } catch (e) {}
+          }
+        }
+
+        // Kirim ke Google Sheet untuk mendapatkan nomor ID (misal 001) & simpan data
+        const result = await sendToBackend(detectedId, finalName, finalLoc, customUrl, password, true);
+
+        if (result && result.status === 'success') {
+          // Tulis URL ?id=001 ke dalam chip NFC fisik
+          const baseUrl = window.location.origin + window.location.pathname;
+          const nfcTargetUrl = `${baseUrl}?id=${result.id}`;
+
+          await ndef.write({
+            records: [{ recordType: 'url', data: nfcTargetUrl }]
+          });
+
+          cancelNfcScan();
+          document.getElementById('topBadge').innerText = `Standee ID: ${result.id}`;
+          statusMsg.style.color = '#2e7d32';
+          statusMsg.innerText = `Berhasil! NFC telah terprogram dengan ID ${result.id} (${finalName || 'Reset'}).`;
+        } else {
+          cancelNfcScan();
+        }
+      };
+    } catch (err) {
+      cancelNfcScan();
+      statusMsg.style.color = '#e05252';
+      statusMsg.innerText = 'Gagal mengakses sensor NFC HP. Pastikan NFC di HP menyala.';
+    }
+  }
+
+  async function sendToBackend(targetId, finalName, finalLoc, customUrl, password, isFromWebNfc) {
+    const statusMsg = document.getElementById('statusMsg');
     statusMsg.style.color = '#6b7a71';
-    statusMsg.innerText = 'Memproses data...';
+    statusMsg.innerText = 'Menyimpan data ke server...';
 
     try {
       const res = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         body: JSON.stringify({
-          action: action,
-          id: nfcId,
+          action: currentTab,
+          id: targetId,
           businessName: finalName,
           locationInfo: finalLoc,
           customUrl: customUrl,
@@ -293,19 +389,18 @@
       });
       const result = await res.json();
 
-      if (result.status === 'success') {
-        statusMsg.style.color = '#2e7d32';
-        statusMsg.innerText = result.message;
-        setTimeout(() => {
-          window.location.href = `${window.location.pathname}?id=${encodeURIComponent(nfcId)}`;
-        }, 1200);
-      } else {
+      if (result.status !== 'success') {
         statusMsg.style.color = '#e05252';
         statusMsg.innerText = result.message;
+      } else if (!isFromWebNfc) {
+        statusMsg.style.color = '#2e7d32';
+        statusMsg.innerText = result.message;
       }
+      return result;
     } catch (e) {
       statusMsg.style.color = '#e05252';
       statusMsg.innerText = 'Terjadi kesalahan jaringan.';
+      return null;
     }
   }
 </script>
